@@ -1,6 +1,6 @@
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Scanner;
 
@@ -44,7 +44,7 @@ class Player {
 			Edge result = NOT_FOUND.copy();
 			
 			// Find the closest target node using breadth-first-search
-			Queue<Edge> queue = new LinkedList<Edge>();
+			PriorityQueue<Edge> queue = new PriorityQueue<Edge>();
 			queue.add(new Edge(position));
 			g.setVisited(position);
 			while(!queue.isEmpty() && result.equals(NOT_FOUND)) {
@@ -60,7 +60,7 @@ class Player {
 							result.to = k;
 							break;
 						}
-						queue.add(new Edge(current.to, k));
+						queue.add(new Edge(current.to, k, g.adjTargets(k)));
 					}
 				}
 			}
@@ -107,6 +107,20 @@ class Graph {
 		
 	}
 	
+	/**
+	 * @param index
+	 * @return The number of target nodes adjacent to this node
+	 */
+	public int adjTargets(int index) {
+		List<Integer> adj = getAdjacentNodes(index);
+		int result = 0;
+		for (Integer k : adj) {
+			if (isTarget(k))
+				result ++;
+		}
+		return result;
+	}
+
 	public void print() {
 		for (int i = 0; i < n; ++i) {
 			if (targets[i])
@@ -151,12 +165,17 @@ class Graph {
 	}
 }
 
-class Edge {
+class Edge implements Comparable<Edge> {
 	public int from, to;
+	public int priority;
 	
-	Edge(int from, int to) {
+	Edge(int from, int to, int priority) {
 		this.from = from;
 		this.to = to;
+		this.priority = priority;
+	}
+	Edge(int from, int to) {
+		this(from, to, 0);
 	}
 	// Starting edge in a path
 	Edge(int to) {
@@ -179,5 +198,10 @@ class Edge {
 	@Override
 	public String toString() {
 		return from + " -> " + to;
+	}
+	@Override
+	public int compareTo(Edge o) {
+		//System.out.println("Comparing " + to + "(" + priority + ") to " + o.to + "(" + o.priority + ")");
+		return (o.priority - this.priority);
 	}
 }
