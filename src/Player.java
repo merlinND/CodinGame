@@ -122,7 +122,7 @@ class Graph {
 	public float heuristic(int index, int depth, int maxDepth) {
 		if (depth >= maxDepth || isTarget(index)) {
 			if (isTarget(index))
-				return (1 / (float) depth);
+				return (2 / (float) depth);
 			else
 				return 0;
 		} else {
