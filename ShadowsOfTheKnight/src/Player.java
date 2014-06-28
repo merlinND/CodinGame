@@ -1,5 +1,3 @@
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
 
 class Position {
@@ -32,19 +30,17 @@ class Position {
 }
 
 class Wall {
-	protected List<List<Boolean>> flags;
-	protected Position max;
-	protected int n;
+	boolean[][] flags;
+	Position max;
+	int n;
 	
 	public Wall(Position max) {
 		this.max = max;
 		
-		this.flags = new ArrayList<List<Boolean>>();
+		this.flags = new boolean[max.x + 1][max.y + 1];
 		for(int x = 0; x <= max.x; x++) {
-			this.flags.add(new ArrayList<Boolean>());
-			
 			for(int y = 0; y <= max.y; y++) {
-				flags.get(x).add(true);
+				flags[x][y] = true;
 				n++;
 			}
 		}
@@ -53,7 +49,7 @@ class Wall {
 	public void print() {
 		for(int y = 0; y <= max.y; y++) {
 			for(int x = 0; x <= max.x; x++) {
-				if (flags.get(x).get(y))
+				if (flags[x][y])
 					System.err.print("1");
 				else
 					System.err.print("0");
@@ -67,8 +63,8 @@ class Wall {
 		for(int x = 0; x <= max.x; x++) {
 			for(int y = 0; y <= max.y; y++) {
 				Position there = new Position(x, y);
-				if(distance(there, bad) < distance(there, good) && flags.get(x).get(y)) { //distanceToGood > d && 
-					flags.get(x).set(y, false);
+				if(distance(there, bad) < distance(there, good) && flags[x][y]) { //distanceToGood > d && 
+					flags[x][y] = false;
 					n--;
 				}
 			}
@@ -84,7 +80,7 @@ class Wall {
 		int i = this.n;
 		for(int x = 0; x <= max.x; x++) {
 			for(int y = 0; y <= max.y; y++) {
-				if(flags.get(x).get(y)) {
+				if(flags[x][y]) {
 					i--;
 					lastSeen.x = x;
 					lastSeen.y = y;
