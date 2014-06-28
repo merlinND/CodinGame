@@ -29,16 +29,27 @@ class Position {
 	}
 }
 
-class Player {
+class Wall {
+	boolean[][] flags;
+	Position max;
+	int n;
 	
-	public static double distance(Position a, Position b) {
-		return Math.sqrt( Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2) );
+	public Wall(Position max) {
+		this.max = max;
+		
+		this.flags = new boolean[max.x + 1][max.y + 1];
+		for(int x = 0; x <= max.x; x++) {
+			for(int y = 0; y <= max.y; y++) {
+				flags[x][y] = true;
+				n++;
+			}
+		}
 	}
 	
-	public static void printTheWall(boolean[][] wall, Position max) {
+	public void print() {
 		for(int y = 0; y <= max.y; y++) {
 			for(int x = 0; x <= max.x; x++) {
-				if (wall[x][y])
+				if (flags[x][y])
 					System.err.print("1");
 				else
 					System.err.print("0");
@@ -47,40 +58,33 @@ class Player {
 		}
 	}
 	
-	public static boolean[][] eliminate(boolean[][] wall, Position max, Position good, Position bad) {
+	public void eliminate(Position good, Position bad) {
 		// Eliminate all windows that are closer to bad than to good
 		for(int x = 0; x <= max.x; x++) {
 			for(int y = 0; y <= max.y; y++) {
 				Position there = new Position(x, y);
-				if(distance(there, bad) < distance(there, good)) { //distanceToGood > d && 
-					wall[x][y] = false;
+				if(distance(there, bad) < distance(there, good) && flags[x][y]) { //distanceToGood > d && 
+					flags[x][y] = false;
+					n--;
 				}
 			}
 		}
-		return wall;
 	}
 	
-	public static Position choose(boolean[][] wall, Position max) {
-		return choose(wall, max, 0.5);
+	public Position choose() {
+		return choose(0.5);
 	}
 	
-	public static Position choose(boolean[][] wall, Position max, double criterion) {
-		int n = 0;
+	public Position choose(double criterion) {
 		Position lastSeen = new Position();
+		int i = this.n;
 		for(int x = 0; x <= max.x; x++) {
 			for(int y = 0; y <= max.y; y++) {
-				if(wall[x][y])
-					n++;
-			}
-		}
-		int i = n;
-		for(int x = 0; x <= max.x; x++) {
-			for(int y = 0; y <= max.y; y++) {
-				if(wall[x][y]) {
+				if(flags[x][y]) {
 					i--;
 					lastSeen.x = x;
 					lastSeen.y = y;
-					if(i <= n * criterion) {
+					if(i <= Math.ceil(n * criterion)) {
 						return lastSeen;
 					}
 				}
@@ -88,6 +92,13 @@ class Player {
 		}
 		return lastSeen;
 	}
+	
+	public static double distance(Position a, Position b) {
+		return Math.sqrt( Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2) );
+	}
+}
+
+class Player {
 	
 	/**
 	 * MAIN
@@ -105,12 +116,7 @@ class Player {
 		current.y = in.nextInt();
 		Position previous = current;
 		
-		boolean[][] wall = new boolean[max.x + 1][max.y + 1];
-		for(int x = 0; x <= max.x; x++) {
-			for(int y = 0; y <= max.y; y++) {
-				wall[x][y] = true;
-			}
-		}
+		Wall wall = new Wall(max);
 		
 		System.err.println("Max is " + max);
 		System.err.println("Starting at " + current);
@@ -137,17 +143,18 @@ class Player {
             	}
             	
             	// Eliminate windows
-            	wall = eliminate(wall, max, good, bad);
-            	printTheWall(wall, max);
+            	wall.eliminate(good, bad);
+            	
+            	wall.print();
             }
             
             // Choose "center" window in remaining possibilities
             previous = current;
-            current = choose(wall, max);
+            current = wall.choose();
             
             // Avoid staying put
             if(current.equals(previous)) {
-            	current = choose(wall, max, Math.random());
+            	current = wall.choose(Math.random());
             	System.err.println("Shuffled to " + current);
             }
             
