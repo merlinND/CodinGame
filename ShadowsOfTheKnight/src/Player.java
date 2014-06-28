@@ -22,23 +22,6 @@ class Position {
 }
 
 class Player {
-	/*
-	 * PROPERTIES
-	 */
-	
-	
-	/* 
-	 * METHODS
-	 */
-
-	
-
-	/*
-	 * GETTERS & SETTERS
-	 */
-	
-	
-	
 	/**
 	 * MAIN
 	 * @param args
@@ -63,8 +46,27 @@ class Player {
             String direction = in.next();
             System.err.println(direction);
 
+            if(direction.contains("L")) {
+            	max.x = current.x - 1;
+            }
+            if(direction.contains("R")) {
+            	min.x = current.x + 1;
+            }
+            if(direction.contains("U")) {
+            	max.y = current.y - 1;
+            }
+            if(direction.contains("D")) {
+            	min.y = current.y + 1;
+            }
+            
+            System.err.println("Min: " + min);
+            System.err.println("Max: " + max);
+            
+            current.x = (max.x + min.x) / 2;
+            current.y = (max.y + min.y) / 2;
+            
             // Write action to standard output
-            System.out.println("0 0");
+            System.out.println(current.x + " " + current.y);
         }
 	}
 }
