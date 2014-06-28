@@ -48,16 +48,11 @@ class Player {
 	}
 	
 	public static boolean[][] eliminate(boolean[][] wall, Position max, Position good, Position bad) {
-		double d = distance(good, bad);
-
-		// Eliminate all windows that are:
-		// - at least at distance d from good
-		// - AND closer to bad than to good
+		// Eliminate all windows that are closer to bad than to good
 		for(int x = 0; x <= max.x; x++) {
 			for(int y = 0; y <= max.y; y++) {
 				Position there = new Position(x, y);
-				double distanceToGood = distance(there, good);
-				if(distanceToGood > d && distance(there, bad) <= distanceToGood) {
+				if(distance(there, bad) < distance(there, good)) { //distanceToGood > d && 
 					wall[x][y] = false;
 				}
 			}
