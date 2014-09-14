@@ -40,11 +40,20 @@ var isEatable = function(mine, target) {
 };
 
 /**
+ * @return {Boolean} Whether or not the velocity is already high enough
+ */
+var tooFast = function(mine) {
+  // TODO: tweak
+  return Math.sqrt(Math.pow(mine.vx, 2) + Math.pow(mine.vy, 2)) >= 20;
+};
+
+/**
  * @TODO Do not target an entity which is fleeing away
  *
  * @warning Will return `null` if no entity is eatable
  */
 var getNearestEatableEntity = function(entities, player) {
+  // TODO: check
   var eatable = entities.filter(function(entity) {
     return isEatable(player, entity);
   });
@@ -119,9 +128,6 @@ while (true) {
 
   // ----- Game logic
   var myEntities = getMyEntities(entities);
-
-  debug('There are', entities.length, 'in total (', myEntities.length, 'are mine).');
-
   assignTargets(myEntities, entities);
 
   // ----- Output
@@ -130,6 +136,7 @@ while (true) {
     // One instruction per chip: 2 real numbers (x y) for a propulsion, or 'WAIT' to stay still
     // You can append a message to your line, it will get displayed over the entity
     var target = getEntityById(entities, targets[mine.id]);
+    if(target && !tooFast(mine)) {
       // TODO: aim for the prospective position (taking into account the target's speed)
       // TODO: do not move if we're already on course
       print(target.x, target.y);
