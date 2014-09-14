@@ -5,6 +5,12 @@
  * Tip: merging your chips will give you a sizeable advantage.
  **/
 
+var debug = function() {
+  var args = arguments;
+  var message = Object.keys(args).map(function(arg) { return args[arg]; }).join(' ');
+  printErr(message, '\n');
+};
+
 var distance = function(from, to) {
   return Math.sqrt( Math.pow(from.x - to.x, 2) + Math.pow(from.y - to.y, 2) );
 };
@@ -58,7 +64,7 @@ var assignTargets = function(myEntities, allEntities) {
   myEntities.forEach(function(mine) {
     if(!targets[mine.id]) {
       targets[mine.id] = getNearestEatableEntity(allEntities, mine);
-      printErr('Assigned my entity', mine.id, 'to target', targets[mine.id].id, '\n');
+      debug('Assigned my entity', mine.id, 'to target', targets[mine.id].id);
       return;
     }
 
@@ -67,7 +73,7 @@ var assignTargets = function(myEntities, allEntities) {
     var target = getEntityById(targets[mine.id]);
     if(!target || !isEatable(mine, target)) {
       targets[mine.id] = getNearestEatableEntity(allEntities, mine);
-      printErr('REassigned my entity', mine.id, 'to target', targets[mine.id].id, '\n');
+      debug('REassigned my entity', mine.id, 'to target', targets[mine.id].id);
       return;
     }
   });
@@ -114,7 +120,7 @@ while (true) {
   // ----- Game logic
   var myEntities = getMyEntities(entities);
 
-  printErr('There are', entities.length, 'in total (', myEntities.length, ' are mine).\n');
+  debug('There are', entities.length, 'in total (', myEntities.length, 'are mine).');
 
   assignTargets(myEntities, entities);
 
@@ -122,8 +128,6 @@ while (true) {
   myEntities.forEach(function(mine) {
     // One instruction per chip: 2 real numbers (x y) for a propulsion, or 'WAIT' to stay still
     // You can append a message to your line, it will get displayed over the entity
-    printErr("Sending instructions for", mine.id, '\n');
-
     var target = targets[mine.id];
     if(target) {
       // TODO: aim for the prospective position (taking into account the target's speed)
