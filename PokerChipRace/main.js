@@ -63,16 +63,16 @@ var getNearestEatableEntity = function(entities, player) {
 var assignTargets = function(myEntities, allEntities) {
   myEntities.forEach(function(mine) {
     if(!targets[mine.id]) {
-      targets[mine.id] = getNearestEatableEntity(allEntities, mine);
+      targets[mine.id] = getNearestEatableEntity(allEntities, mine).id;
       debug('Assigned my entity', mine.id, 'to target', targets[mine.id].id);
       return;
     }
 
     // Even if a target is already assigned, we must check that it exists
     // and is still eatable
-    var target = getEntityById(targets[mine.id]);
+    var target = getEntityById(allEntities, targets[mine.id]);
     if(!target || !isEatable(mine, target)) {
-      targets[mine.id] = getNearestEatableEntity(allEntities, mine);
+      targets[mine.id] = getNearestEatableEntity(allEntities, mine).id;
       debug('REassigned my entity', mine.id, 'to target', targets[mine.id].id);
       return;
     }
@@ -125,11 +125,11 @@ while (true) {
   assignTargets(myEntities, entities);
 
   // ----- Output
+  debug('There are', entities.length, 'in total (', myEntities.length, 'are mine).');
   myEntities.forEach(function(mine) {
     // One instruction per chip: 2 real numbers (x y) for a propulsion, or 'WAIT' to stay still
     // You can append a message to your line, it will get displayed over the entity
-    var target = targets[mine.id];
-    if(target) {
+    var target = getEntityById(entities, targets[mine.id]);
       // TODO: aim for the prospective position (taking into account the target's speed)
       // TODO: do not move if we're already on course
       print(target.x, target.y);
