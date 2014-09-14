@@ -39,7 +39,7 @@ var getEntityById = function(allEntities, id) {
 var isEatable = function(mine, target) {
   // TODO: take into account the prospective size
   // (i.e. the size after using matter to reach the target)
-  return (mine.radius > target.radius) || isMine(target);
+  return (mine.radius * 0.87 > target.radius) || isMine(target);
 };
 
 /**
