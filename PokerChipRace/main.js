@@ -16,7 +16,7 @@ var getMyEntities = function(allEntities) {
 };
 
 /**
- * @return {Object|null}
+ * @return {Object|null} The entity with this id or null if not found (e.g. has been eaten)
  */
 var getEntityById = function(allEntities, id) {
   for(var i = allEntities.length - 1; i >= 0; i--) {
@@ -28,10 +28,14 @@ var getEntityById = function(allEntities, id) {
 };
 
 var isEatable = function(mine, target) {
+  // TODO: take into account the prospective size
+  // (i.e. the size after using matter to reach the target)
   return (mine.radius > target.radius);
 };
 
 /**
+ * @TODO Do not target an entity which is fleeing away
+ *
  * @warning Will return `null` if no entity is eatable
  */
 var getNearestEatableEntity = function(entities, player) {
@@ -47,7 +51,7 @@ var getNearestEatableEntity = function(entities, player) {
 };
 
 /**
- * Assign a target to each free controlled entity.
+ * Assign a target to each controlled entity which is not already assigned.
  * If the current target is no longer eatable or no longer exists, reassign a new one.
  */
 var assignTargets = function(myEntities, allEntities) {
@@ -73,6 +77,8 @@ var assignTargets = function(myEntities, allEntities) {
 var playerId = parseInt(readline());
 /**
  * My entity id => its target entity's id
+ * This cannot be a simple property of the entities because they're reloaded
+ * at each game turn.
  */
 var targets = {};
 
@@ -113,8 +119,6 @@ while (true) {
   assignTargets(myEntities, entities);
 
   // ----- Output
-  // To debug: printErr('Debug messages...');
-  // Write an action using print()
   myEntities.forEach(function(mine) {
     // One instruction per chip: 2 real numbers (x y) for a propulsion, or 'WAIT' to stay still
     // You can append a message to your line, it will get displayed over the entity
@@ -122,6 +126,8 @@ while (true) {
 
     var target = targets[mine.id];
     if(target) {
+      // TODO: aim for the prospective position (taking into account the target's speed)
+      // TODO: do not move if we're already on course
       print(target.x, target.y);
     }
     else {
