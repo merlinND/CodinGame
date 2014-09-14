@@ -15,9 +15,12 @@ var distance = function(from, to) {
   return Math.sqrt( Math.pow(from.x - to.x, 2) + Math.pow(from.y - to.y, 2) );
 };
 
+var isMine = function(entity) {
+  return (entity.owner == playerId);
+};
 var getMyEntities = function(allEntities) {
   return allEntities.filter(function(entity) {
-    return (entity.owner == playerId);
+    return isMine(entity);
   });
 };
 
@@ -36,7 +39,7 @@ var getEntityById = function(allEntities, id) {
 var isEatable = function(mine, target) {
   // TODO: take into account the prospective size
   // (i.e. the size after using matter to reach the target)
-  return (mine.radius > target.radius);
+  return (mine.radius > target.radius) || isMine(target);
 };
 
 /**
