@@ -52,17 +52,18 @@ var tooFast = function(mine) {
 
 /**
  * @TODO Do not target an entity which is fleeing away
+ * @TODO Do not target an entity which is "protected" by an uneatable entity
  *
  * @warning Will return `null` if no entity is eatable
  */
 var getNearestEatableEntity = function(entities, player) {
   // TODO: check
   var eatable = entities.filter(function(entity) {
-    return isEatable(player, entity);
+    return isEatable(player, entity) && (entity.id != player.id);
   });
 
   var sorted = eatable.sort(function(a, b) {
-    return distance(a, player) <= distance(b, player);
+    return distance(a, player) > distance(b, player);
   });
 
   return sorted[0];
@@ -76,7 +77,7 @@ var assignTargets = function(myEntities, allEntities) {
   myEntities.forEach(function(mine) {
     if(!targets[mine.id]) {
       targets[mine.id] = getNearestEatableEntity(allEntities, mine).id;
-      debug('Assigned my entity', mine.id, 'to target', targets[mine.id].id);
+      debug('Assigned my entity', mine.id, 'to target', targets[mine.id]);
       return;
     }
 
@@ -85,7 +86,7 @@ var assignTargets = function(myEntities, allEntities) {
     var target = getEntityById(allEntities, targets[mine.id]);
     if(!target || !isEatable(mine, target)) {
       targets[mine.id] = getNearestEatableEntity(allEntities, mine).id;
-      debug('REassigned my entity', mine.id, 'to target', targets[mine.id].id);
+      debug('REassigned my entity', mine.id, 'to target', targets[mine.id]);
       return;
     }
   });
@@ -142,7 +143,7 @@ while (true) {
     if(target && !tooFast(mine)) {
       // TODO: aim for the prospective position (taking into account the target's speed)
       // TODO: do not move if we're already on course
-      print(target.x, target.y);
+      print(target.x, target.y, target.id);
     }
     else {
       print('WAIT');
