@@ -16,11 +16,27 @@ var getMyEntities = function(allEntities) {
 };
 
 /**
+ * @return {Object|null}
+ */
+var getEntityById = function(allEntities, id) {
+  for(var i = allEntities.length - 1; i >= 0; i--) {
+    if(allEntities[i].id == id) {
+      return allEntities[i];
+    }
+  }
+  return null;
+};
+
+var isEatable = function(mine, target) {
+  return (mine.radius > target.radius);
+};
+
+/**
  * @warning Will return `null` if no entity is eatable
  */
 var getNearestEatableEntity = function(entities, player) {
   var eatable = entities.filter(function(entity) {
-    return entity.radius < player.radius;
+    return isEatable(player, entity);
   });
 
   var sorted = eatable.sort(function(a, b) {
@@ -30,8 +46,35 @@ var getNearestEatableEntity = function(entities, player) {
   return sorted[0];
 };
 
+/**
+ * Assign a target to each free controlled entity.
+ * If the current target is no longer eatable or no longer exists, reassign a new one.
+ */
+var assignTargets = function(myEntities, allEntities) {
+  myEntities.forEach(function(mine) {
+    if(!targets[mine.id]) {
+      targets[mine.id] = getNearestEatableEntity(allEntities, mine);
+      printErr('Assigned my entity', mine.id, 'to target', targets[mine.id].id, '\n');
+      return;
+    }
+
+    // Even if a target is already assigned, we must check that it exists
+    // and is still eatable
+    var target = getEntityById(targets[mine.id]);
+    if(!target || !isEatable(mine, target)) {
+      targets[mine.id] = getNearestEatableEntity(allEntities, mine);
+      printErr('REassigned my entity', mine.id, 'to target', targets[mine.id].id, '\n');
+      return;
+    }
+  });
+};
+
 // Player identifiers range from 0 to 4
 var playerId = parseInt(readline());
+/**
+ * My entity id => its target entity's id
+ */
+var targets = {};
 
 // Main game loop
 while (true) {
@@ -65,17 +108,19 @@ while (true) {
   // ----- Game logic
   var myEntities = getMyEntities(entities);
 
-  printErr("There are", entities.length, "in total (", myEntities.length, " are mine).");
+  printErr('There are', entities.length, 'in total (', myEntities.length, ' are mine).\n');
+
+  assignTargets(myEntities, entities);
 
   // ----- Output
   // To debug: printErr('Debug messages...');
   // Write an action using print()
-  myEntities.forEach(function(entity) {
+  myEntities.forEach(function(mine) {
     // One instruction per chip: 2 real numbers (x y) for a propulsion, or 'WAIT' to stay still
     // You can append a message to your line, it will get displayed over the entity
-    printErr("Sending instructions for", entity.id);
+    printErr("Sending instructions for", mine.id, '\n');
 
-    var target = getNearestEatableEntity(entities, entity);
+    var target = targets[mine.id];
     if(target) {
       print(target.x, target.y);
     }
