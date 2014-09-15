@@ -59,7 +59,7 @@ var canMove = function(mine) {
  * @param {Function} criterion Sort function to apply to eatable entities to choose the best one
  * @warning Will return `null` if no entity is eatable
  */
-var getBestEatableEntity = function(entities, player, criterion) {
+var selectEatableEntity = function(entities, player, criterion) {
   var eatable = entities.filter(function(entity) {
     return isEatable(player, entity) && (entity.id != player.id);
   });
@@ -73,19 +73,31 @@ var getNearestEatableEntity = function(entities, player) {
   var nearest = function(a, b) {
     return distance(a, player) > distance(b, player);
   };
-  return getBestEatableEntity(entities, player, nearest);
+  return selectEatableEntity(entities, player, nearest);
 };
 var getLargestEatableEntity = function(entities, player) {
   var largest = function(a, b) {
     return a.radius < b.radius;
   };
-  return getBestEatableEntity(entities, player, largest);
+  return selectEatableEntity(entities, player, largest);
+};
+var getBestEntity = function(entities, player) {
+  var minRadius = 10;
+  // Compromise size vs distance
+  // TODO: tweak heuristic
+  var heuristic = function(a, b) {
+    debug(a.radius);
+    debug(b.radius);
+    as = (a.radius >= minRadius ? a.radius : 0);
+    bs = (b.radius >= minRadius ? b.radius : 0);
+    return distance(a, player) - a.radius > distance(b, player) - b.radius;
+  };
+  return selectEatableEntity(entities, player, heuristic);
 };
 
 var assignTarget = function(myEntity, allEntities) {
-  // TODO: compromise size (gain) vs distance
-  var target = getLargestEatableEntity(allEntities, myEntity);
-  // target = getNearestEatableEntity(allEntities, mine);
+  // var target = getBestEntity(allEntities, myEntity);
+  target = getNearestEatableEntity(allEntities, mine);
   targets[myEntity.id] = (target ? target.id : null);
   // Allow to rectify course, even if we're already moving over target speed
   myEntity.allowRedirect = true;
