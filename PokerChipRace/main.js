@@ -75,17 +75,21 @@ var getNearestEatableEntity = function(entities, player) {
  */
 var assignTargets = function(myEntities, allEntities) {
   myEntities.forEach(function(mine) {
+    var target;
+
     if(!targets[mine.id]) {
-      targets[mine.id] = getNearestEatableEntity(allEntities, mine).id;
+      target = getNearestEatableEntity(allEntities, mine);
+      targets[mine.id] = (target ? target.id : null);
       debug('Assigned my entity', mine.id, 'to target', targets[mine.id]);
       return;
     }
 
     // Even if a target is already assigned, we must check that it exists
     // and is still eatable
-    var target = getEntityById(allEntities, targets[mine.id]);
+    target = getEntityById(allEntities, targets[mine.id]);
     if(!target || !isEatable(mine, target)) {
-      targets[mine.id] = getNearestEatableEntity(allEntities, mine).id;
+      target = getNearestEatableEntity(allEntities, mine);
+      targets[mine.id] = (target ? target.id : null);
       debug('REassigned my entity', mine.id, 'to target', targets[mine.id]);
       return;
     }
