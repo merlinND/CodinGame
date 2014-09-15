@@ -56,22 +56,36 @@ var canMove = function(mine) {
  * @TODO Do not target an entity which is fleeing away
  * @TODO Do not target an entity which is "protected" by an uneatable entity
  *
+ * @param {Function} criterion Sort function to apply to eatable entities to choose the best one
  * @warning Will return `null` if no entity is eatable
  */
-var getNearestEatableEntity = function(entities, player) {
-  // TODO: check
+var getBestEatableEntity = function(entities, player, criterion) {
   var eatable = entities.filter(function(entity) {
     return isEatable(player, entity) && (entity.id != player.id);
   });
 
-  var sorted = eatable.sort(function(a, b) {
-    return distance(a, player) > distance(b, player);
-  });
+  var sorted = eatable.sort(criterion);
 
   return sorted[0];
 };
 
-var assignTarget = function(myEntity, target) {
+var getNearestEatableEntity = function(entities, player) {
+  var nearest = function(a, b) {
+    return distance(a, player) > distance(b, player);
+  };
+  return getBestEatableEntity(entities, player, nearest);
+};
+var getLargestEatableEntity = function(entities, player) {
+  var largest = function(a, b) {
+    return a.radius < b.radius;
+  };
+  return getBestEatableEntity(entities, player, largest);
+};
+
+var assignTarget = function(myEntity, allEntities) {
+  // TODO: compromise size (gain) vs distance
+  var target = getLargestEatableEntity(allEntities, myEntity);
+  // target = getNearestEatableEntity(allEntities, mine);
   targets[myEntity.id] = (target ? target.id : null);
   // Allow to rectify course, even if we're already moving over target speed
   myEntity.allowRedirect = true;
@@ -84,20 +98,16 @@ var assignTarget = function(myEntity, target) {
  */
 var assignTargets = function(myEntities, allEntities) {
   myEntities.forEach(function(mine) {
-    var target;
-
     if(!targets[mine.id]) {
-      target = getNearestEatableEntity(allEntities, mine);
-      assignTarget(mine, target);
+      assignTarget(mine, allEntities);
       return;
     }
 
     // Even if a target is already assigned, we must check that it exists
     // and is still eatable
     target = getEntityById(allEntities, targets[mine.id]);
-    if(!target || !isEatable(mine, target)) {
-      target = getNearestEatableEntity(allEntities, mine);
-      assignTarget(mine, target);
+    if(!target || !isEatable(mine, allEntities)) {
+      assignTarget(mine, allEntities);
       return;
     }
   });
@@ -170,7 +180,7 @@ while (true) {
     var target = getEntityById(entities, targets[mine.id]);
     if(target && !canMove(mine)) {
       // TODO: move only if we're no longer on course and it's not too costly
-      // TODO: estimate several rounds ahead
+      // TODO: estimate target position several rounds ahead (depending on my speed)
       var estimatedPosition = estimatePosition(target);
       print(estimatedPosition.x, estimatedPosition.y, target.id);
     }
