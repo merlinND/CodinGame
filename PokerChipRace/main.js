@@ -51,7 +51,7 @@ var isEatable = function(mine, target) {
 var isWorthIt = function(mine, target) {
   debug(getSpeed(target));
   return isEatable(mine, target) &&
-         target.radius > (mine.radius / 4) &&
+         target.radius >= (mine.radius / 4) &&
          getSpeed(target) <= MAX_TARGET_SPEED;
 };
 
@@ -59,9 +59,10 @@ var isWorthIt = function(mine, target) {
  * @return {Boolean} Whether or not the velocity is already high enough
  */
 var canMove = function(mine) {
+  // TODO: allow redirects
   // TODO: tweak max speed (should take target into account)
-  var can = mine.allowRedirect || getSpeed(mine) <= MAX_SPEED;
-  mine.allowRedirect = false;
+  var can = getSpeed(mine) <= MAX_SPEED;
+  // mine.allowRedirect = false;
   return can;
 };
 
