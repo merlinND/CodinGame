@@ -45,9 +45,11 @@ var isEatable = function(mine, target) {
 /**
  * @return {Boolean} Whether or not the velocity is already high enough
  */
-var tooFast = function(mine) {
-  // TODO: tweak
-  return Math.sqrt(Math.pow(mine.vx, 2) + Math.pow(mine.vy, 2)) >= 20;
+var canMove = function(mine) {
+  // TODO: tweak max speed (should take target into account)
+  var can = !mine.allowRedirect && (Math.sqrt(Math.pow(mine.vx, 2) + Math.pow(mine.vy, 2)) >= 20);
+  mine.allowRedirect = false;
+  return can;
 };
 
 /**
@@ -69,6 +71,13 @@ var getNearestEatableEntity = function(entities, player) {
   return sorted[0];
 };
 
+var assignTarget = function(myEntity, target) {
+  targets[myEntity.id] = (target ? target.id : null);
+  // Allow to rectify course, even if we're already moving over target speed
+  myEntity.allowRedirect = true;
+  debug('Assigned my entity', myEntity.id, 'to target', targets[myEntity.id]);
+};
+
 /**
  * Assign a target to each controlled entity which is not already assigned.
  * If the current target is no longer eatable or no longer exists, reassign a new one.
@@ -79,8 +88,7 @@ var assignTargets = function(myEntities, allEntities) {
 
     if(!targets[mine.id]) {
       target = getNearestEatableEntity(allEntities, mine);
-      targets[mine.id] = (target ? target.id : null);
-      debug('Assigned my entity', mine.id, 'to target', targets[mine.id]);
+      assignTarget(mine, target);
       return;
     }
 
@@ -89,8 +97,7 @@ var assignTargets = function(myEntities, allEntities) {
     target = getEntityById(allEntities, targets[mine.id]);
     if(!target || !isEatable(mine, target)) {
       target = getNearestEatableEntity(allEntities, mine);
-      targets[mine.id] = (target ? target.id : null);
-      debug('REassigned my entity', mine.id, 'to target', targets[mine.id]);
+      assignTarget(mine, target);
       return;
     }
   });
@@ -161,7 +168,7 @@ while (true) {
     // You can append a message to your line, it will get displayed over the entity
 
     var target = getEntityById(entities, targets[mine.id]);
-    if(target && !tooFast(mine)) {
+    if(target && !canMove(mine)) {
       // TODO: move only if we're no longer on course and it's not too costly
       // TODO: estimate several rounds ahead
       var estimatedPosition = estimatePosition(target);
