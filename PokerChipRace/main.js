@@ -96,6 +96,22 @@ var assignTargets = function(myEntities, allEntities) {
   });
 };
 
+/**
+ * @param {Object} entity A moving entity. We assume it will stay on its current course.
+ *   Properties `vx` and `vy` are expressed in units per round.
+ * @param {Integer} [n] Number of rounds to predict over. Defaults to 1
+ */
+var estimatePosition = function(entity, n) {
+  if(!n) {
+    n = 1;
+  }
+
+  return {
+    x: entity.x + n * entity.vx,
+    y: entity.y + n * entity.vy
+  };
+};
+
 // Player identifiers range from 0 to 4
 var playerId = parseInt(readline());
 /**
@@ -143,11 +159,13 @@ while (true) {
   myEntities.forEach(function(mine) {
     // One instruction per chip: 2 real numbers (x y) for a propulsion, or 'WAIT' to stay still
     // You can append a message to your line, it will get displayed over the entity
+
     var target = getEntityById(entities, targets[mine.id]);
     if(target && !tooFast(mine)) {
-      // TODO: aim for the prospective position (taking into account the target's speed)
-      // TODO: do not move if we're already on course
-      print(target.x, target.y, target.id);
+      // TODO: move only if we're no longer on course and it's not too costly
+      // TODO: estimate several rounds ahead
+      var estimatedPosition = estimatePosition(target);
+      print(estimatedPosition.x, estimatedPosition.y, target.id);
     }
     else {
       print('WAIT');
