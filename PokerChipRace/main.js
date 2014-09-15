@@ -5,6 +5,10 @@
  * Tip: merging your chips will give you a sizeable advantage.
  **/
 
+var MAX_SPEED = 15;
+var MAX_TARGET_SPEED = 100;
+var MIN_TARGET_RADIUS = 8;
+
 var debug = function() {
   var args = arguments;
   var message = Object.keys(args).map(function(arg) { return args[arg]; }).join(' ');
@@ -13,6 +17,9 @@ var debug = function() {
 
 var distance = function(from, to) {
   return Math.sqrt( Math.pow(from.x - to.x, 2) + Math.pow(from.y - to.y, 2) );
+};
+var getSpeed = function(entity) {
+  return Math.sqrt(Math.pow(entity.vx, 2) + Math.pow(entity.vy, 2));
 };
 
 var isMine = function(entity) {
@@ -41,13 +48,19 @@ var isEatable = function(mine, target) {
   // (i.e. the size after using matter to reach the target)
   return (mine.radius * 0.87 > target.radius) || isMine(target);
 };
+var isWorthIt = function(mine, target) {
+  debug(getSpeed(target));
+  return isEatable(mine, target) &&
+         target.radius > (mine.radius / 4) &&
+         getSpeed(target) <= MAX_TARGET_SPEED;
+};
 
 /**
  * @return {Boolean} Whether or not the velocity is already high enough
  */
 var canMove = function(mine) {
   // TODO: tweak max speed (should take target into account)
-  var can = !mine.allowRedirect && (Math.sqrt(Math.pow(mine.vx, 2) + Math.pow(mine.vy, 2)) >= 20);
+  var can = mine.allowRedirect || getSpeed(mine) <= MAX_SPEED;
   mine.allowRedirect = false;
   return can;
 };
@@ -61,11 +74,10 @@ var canMove = function(mine) {
  */
 var selectEatableEntity = function(entities, player, criterion) {
   var eatable = entities.filter(function(entity) {
-    return isEatable(player, entity) && (entity.id != player.id);
+    return isWorthIt(player, entity) && (entity.id != player.id);
   });
 
   var sorted = eatable.sort(criterion);
-
   return sorted[0];
 };
 
@@ -82,14 +94,11 @@ var getLargestEatableEntity = function(entities, player) {
   return selectEatableEntity(entities, player, largest);
 };
 var getBestEntity = function(entities, player) {
-  var minRadius = 10;
   // Compromise size vs distance
   // TODO: tweak heuristic
   var heuristic = function(a, b) {
-    debug(a.radius);
-    debug(b.radius);
-    as = (a.radius >= minRadius ? a.radius : 0);
-    bs = (b.radius >= minRadius ? b.radius : 0);
+    as = (a.radius >= MIN_TARGET_RADIUS ? a.radius : 0);
+    bs = (b.radius >= MIN_TARGET_RADIUS ? b.radius : 0);
     return distance(a, player) - a.radius > distance(b, player) - b.radius;
   };
   return selectEatableEntity(entities, player, heuristic);
@@ -97,7 +106,7 @@ var getBestEntity = function(entities, player) {
 
 var assignTarget = function(myEntity, allEntities) {
   // var target = getBestEntity(allEntities, myEntity);
-  target = getNearestEatableEntity(allEntities, mine);
+  target = getNearestEatableEntity(allEntities, myEntity);
   targets[myEntity.id] = (target ? target.id : null);
   // Allow to rectify course, even if we're already moving over target speed
   myEntity.allowRedirect = true;
@@ -190,7 +199,7 @@ while (true) {
     // You can append a message to your line, it will get displayed over the entity
 
     var target = getEntityById(entities, targets[mine.id]);
-    if(target && !canMove(mine)) {
+    if(target && canMove(mine)) {
       // TODO: move only if we're no longer on course and it's not too costly
       // TODO: estimate target position several rounds ahead (depending on my speed)
       var estimatedPosition = estimatePosition(target);
