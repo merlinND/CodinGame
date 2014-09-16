@@ -128,7 +128,7 @@ var assignTargets = function(myEntities, allEntities) {
     // Even if a target is already assigned, we must check that it exists
     // and is still eatable
     target = getEntityById(allEntities, targets[mine.id]);
-    if(!target || !isEatable(mine, allEntities)) {
+    if(!target || !isEatable(mine, target)) {
       assignTarget(mine, allEntities);
       return;
     }
