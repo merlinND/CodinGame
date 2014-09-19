@@ -10,6 +10,8 @@
 var MAX_SPEED = 15;
 var MAX_TARGET_SPEED = 100;
 var MIN_TARGET_RADIUS = 8;
+/** It doesn't make sense to try and predict positions dozens of rounds in advance */
+var MAX_PREDICTION_HORIZON = 24;
 
 var debug = function() {
   var args = arguments;
@@ -106,17 +108,17 @@ var getBestEntity = function(entities, player) {
 };
 
 var assignTarget = function(myEntity, allEntities) {
-  // var target = getBestEntity(allEntities, myEntity);
   target = getBestEntity(allEntities, myEntity);
   targets[myEntity.id] = (target ? target.id : null);
   // Allow to rectify course, even if we're already moving over target speed
   myEntity.allowRedirect = true;
-  debug('Assigned my entity', myEntity.id, 'to target', targets[myEntity.id]);
 };
 
 /**
  * Assign a target to each controlled entity which is not already assigned.
  * If the current target is no longer eatable or no longer exists, reassign a new one.
+ *
+ * @TODO When assigning to one of my one entities, assign reciprocally
  */
 var assignTargets = function(myEntities, allEntities) {
   myEntities.forEach(function(mine) {
@@ -138,7 +140,7 @@ var assignTargets = function(myEntities, allEntities) {
 /**
  * @param {Object} entity A moving entity. We assume it will stay on its current course.
  *   Properties `vx` and `vy` are expressed in units per round.
- * @param {Integer} [n] Number of rounds to predict over. Defaults to 1
+ * @param {Float} [n] Number of rounds to predict over. Defaults to 1
  */
 var estimatePosition = function(entity, n) {
   if(!n) {
@@ -149,6 +151,23 @@ var estimatePosition = function(entity, n) {
     x: entity.x + n * entity.vx,
     y: entity.y + n * entity.vy
   };
+};
+
+/**
+ * @param {Object} entity The controlled entity
+ * @param {Object} target The entity to reach
+ * @param {Float} [speed] Average speed (units per round) to assume. Defaults to max(current speed, MAX_SPEED)
+ * @return {Float} Number of rounds necessary to reach the target
+ */
+var estimateEta = function(entity, target, speed) {
+  if(!speed) {
+    speed = Math.max(getSpeed(entity), MAX_SPEED);
+  }
+
+  // TODO: take into account target displacement and compute
+  // a real intersection point
+  var distanceToTarget = distance(entity, target);
+  return distanceToTarget / speed;
 };
 
 // Player identifiers range from 0 to 4
@@ -202,8 +221,10 @@ while (true) {
     var target = getEntityById(entities, targets[mine.id]);
     if(target && canMove(mine)) {
       // TODO: move only if we're no longer on course and it's not too costly
-      // TODO: estimate target position several rounds ahead (depending on my speed)
-      var estimatedPosition = estimatePosition(target);
+      // TODO: fleeing: estimate the ETA to dangereous entities assuming no change in my trajectory, flee if the ETA is too small
+      var eta = estimateEta(mine, target);
+      debug('Moving', mine.id, 'to', target.id, 'will take', eta, 'rounds.');
+      var estimatedPosition = estimatePosition(target, Math.min(eta, MAX_PREDICTION_HORIZON));
       print(estimatedPosition.x, estimatedPosition.y, target.id);
     }
     else {
