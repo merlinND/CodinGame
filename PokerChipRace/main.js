@@ -12,7 +12,7 @@ var MAX_TARGET_SPEED = 100;
 var MIN_TARGET_RADIUS = 8;
 /** It doesn't make sense to try and predict positions dozens of rounds in advance */
 var MAX_PREDICTION_HORIZON = 24;
-var DEFAULT_PREDICTION_HORIZON = 2;
+var DEFAULT_PREDICTION_HORIZON = 4;
 
 var debug = function() {
   var args = arguments;
@@ -163,12 +163,13 @@ var isEndangered = function(myEntity, allEntities, n) {
     }
 
     // TODO: trajectory based detection (continuous movement)
+    // TODO: take bouncing into account
     var d;
     var criticalDistance = myEntity.radius + e.radius;
     for(var i = 1; i <= n; ++i) {
       d = distance(estimatePosition(myEntity, i), estimatePosition(e, i));
       // debug(myEntity.id, '--', e.id, ':', d, '(min:', criticalDistance, ')');
-      if(d <= 0.98 * criticalDistance) {
+      if(d <= criticalDistance) {
         return true;
       }
     }
@@ -189,14 +190,22 @@ var isEndangered = function(myEntity, allEntities, n) {
  * @return {Object} The best possible position to escape this predator
  */
 var chooseEscapeDestination = function(myEntity, predator) {
+  // TODO: escape from point of crash, not predator's displacement
   // TODO: take environment into account
   // TODO: take current inertia into account
   // TODO: check that this works for still predators
-  // Move perpendicularly to the predator's displacement
-  var normal = {
-    x: - predator.vy,
-    y: predator.vx
-  };
+  var normal = {};
+  // Avoid still targets
+  if(getSpeed(predator) > 0.1) {
+    normal.x = - predator.vy;
+    normal.y = predator.vx;
+  }
+  else {
+    normal.x = - myEntity.vx;
+    normal.y = - myEntity.vy;
+  }
+
+  debug('Escaping towards', normal.x, normal.y);
 
   return {
     x: myEntity.x + normal.x,
@@ -219,18 +228,6 @@ var assignTarget = function(myEntity, allEntities) {
  */
 var assignTargets = function(myEntities, allEntities) {
   myEntities.forEach(function(mine) {
-    var predator = isEndangered(mine, allEntities);
-    if(predator) {
-      debug(mine.id, 'is in DANGER because of', predator.id);
-      var escape = chooseEscapeDestination(mine, predator);
-      debug('Escaping to', escape.x, escape.y);
-
-      // TODO: refactor
-      targets[mine.id] = null;
-      print(escape.x, escape.y, 'FLY YOU FOOLS');
-      return;
-    }
-
     if(!targets[mine.id]) {
       assignTarget(mine, allEntities);
       return;
@@ -291,6 +288,14 @@ while (true) {
   myEntities.forEach(function(mine) {
     // One instruction per chip: 2 real numbers (x y) for a propulsion, or 'WAIT' to stay still
     // You can append a message to your line, it will get displayed over the entity
+
+    var predator = isEndangered(mine, entities);
+    if(predator) {
+      debug(mine.id, 'is in DANGER because of', predator.id);
+      var escape = chooseEscapeDestination(mine, predator);
+      print(escape.x, escape.y, 'FLY YOU FOOLS');
+      return;
+    }
 
     var target = getEntityById(entities, targets[mine.id]);
     if(target && canMove(mine)) {
