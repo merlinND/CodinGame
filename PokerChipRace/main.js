@@ -12,7 +12,7 @@ var MAX_TARGET_SPEED = 100;
 var MIN_TARGET_RADIUS = 8;
 /** It doesn't make sense to try and predict positions dozens of rounds in advance */
 var MAX_PREDICTION_HORIZON = 24;
-var DEFAULT_PREDICTION_HORIZON = 3;
+var DEFAULT_PREDICTION_HORIZON = 2;
 
 var debug = function() {
   var args = arguments;
@@ -111,13 +111,6 @@ var getBestEntity = function(entities, player) {
   return selectEatableEntity(entities, player, heuristic);
 };
 
-var assignTarget = function(myEntity, allEntities) {
-  target = getBestEntity(allEntities, myEntity);
-  targets[myEntity.id] = (target ? target.id : null);
-  // Allow to rectify course, even if we're already moving over target speed
-  myEntity.allowRedirect = true;
-};
-
 /**
  * @param {Object} entity A moving entity. We assume it will stay on its current course.
  *   Properties `vx` and `vy` are expressed in units per round.
@@ -193,6 +186,32 @@ var isEndangered = function(myEntity, allEntities, n) {
 };
 
 /**
+ * @return {Object} The best possible position to escape this predator
+ */
+var chooseEscapeDestination = function(myEntity, predator) {
+  // TODO: take environment into account
+  // TODO: take current inertia into account
+  // TODO: check that this works for still predators
+  // Move perpendicularly to the predator's displacement
+  var normal = {
+    x: - predator.vy,
+    y: predator.vx
+  };
+
+  return {
+    x: myEntity.x + normal.x,
+    y: myEntity.y + normal.y
+  };
+};
+
+var assignTarget = function(myEntity, allEntities) {
+  target = getBestEntity(allEntities, myEntity);
+  targets[myEntity.id] = (target ? target.id : null);
+  // Allow to rectify course, even if we're already moving over target speed
+  myEntity.allowRedirect = true;
+};
+
+/**
  * Assign a target to each controlled entity which is not already assigned.
  * If the current target is no longer eatable or no longer exists, reassign a new one.
  *
@@ -203,6 +222,13 @@ var assignTargets = function(myEntities, allEntities) {
     var predator = isEndangered(mine, allEntities);
     if(predator) {
       debug(mine.id, 'is in DANGER because of', predator.id);
+      var escape = chooseEscapeDestination(mine, predator);
+      debug('Escaping to', escape.x, escape.y);
+
+      // TODO: refactor
+      targets[mine.id] = null;
+      print(escape.x, escape.y, 'FLY YOU FOOLS');
+      return;
     }
 
     if(!targets[mine.id]) {
