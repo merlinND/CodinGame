@@ -12,6 +12,7 @@ var MAX_TARGET_SPEED = 100;
 var MIN_TARGET_RADIUS = 8;
 /** It doesn't make sense to try and predict positions dozens of rounds in advance */
 var MAX_PREDICTION_HORIZON = 24;
+var DEFAULT_PREDICTION_HORIZON = 3;
 
 var debug = function() {
   var args = arguments;
@@ -28,6 +29,12 @@ var getSpeed = function(entity) {
 
 var isMine = function(entity) {
   return (entity.owner == playerId);
+};
+/**
+ * Largest first
+ */
+var sortBySize = function(a, b) {
+  return a.radius < b.radius;
 };
 var getMyEntities = function(allEntities) {
   return allEntities.filter(function(entity) {
@@ -91,10 +98,7 @@ var getNearestEatableEntity = function(entities, player) {
   return selectEatableEntity(entities, player, nearest);
 };
 var getLargestEatableEntity = function(entities, player) {
-  var largest = function(a, b) {
-    return a.radius < b.radius;
-  };
-  return selectEatableEntity(entities, player, largest);
+  return selectEatableEntity(entities, player, sortBySize);
 };
 var getBestEntity = function(entities, player) {
   // Compromise size vs distance
@@ -112,29 +116,6 @@ var assignTarget = function(myEntity, allEntities) {
   targets[myEntity.id] = (target ? target.id : null);
   // Allow to rectify course, even if we're already moving over target speed
   myEntity.allowRedirect = true;
-};
-
-/**
- * Assign a target to each controlled entity which is not already assigned.
- * If the current target is no longer eatable or no longer exists, reassign a new one.
- *
- * @TODO When assigning to one of my one entities, assign reciprocally
- */
-var assignTargets = function(myEntities, allEntities) {
-  myEntities.forEach(function(mine) {
-    if(!targets[mine.id]) {
-      assignTarget(mine, allEntities);
-      return;
-    }
-
-    // Even if a target is already assigned, we must check that it exists
-    // and is still eatable
-    target = getEntityById(allEntities, targets[mine.id]);
-    if(!target || !isEatable(mine, target)) {
-      assignTarget(mine, allEntities);
-      return;
-    }
-  });
 };
 
 /**
@@ -168,6 +149,66 @@ var estimateEta = function(entity, target, speed) {
   // a real intersection point
   var distanceToTarget = distance(entity, target);
   return distanceToTarget / speed;
+};
+
+
+/**
+ * @param {Object} myEntity
+ * @param {Array} allEntities
+ * @param {Integer} [n] Number of rounds to predict ahead
+ * @return {Integer} The id of an entity endangering this entity, or null if it's safe
+ */
+var isEndangered = function(myEntity, allEntities, n) {
+  if(!n) {
+    n = DEFAULT_PREDICTION_HORIZON;
+  }
+
+  var myPosition = estimatePosition(myEntity, n);
+  var dangereous = allEntities.filter(function(e) {
+    if(isEatable(myEntity, e)) {
+      return false;
+    }
+
+    var position = estimatePosition(e, n);
+    var d = distance(myPosition, position);
+    return d <= 1.02 * ((myEntity.radius / 2) + (e.radius / 2));
+  });
+
+  if(!dangereous || dangereous.length < 1) {
+    return null;
+  }
+
+  // Return the biggest dangereous entity
+  dangereous.sort(sortBySize);
+  return dangereous[0];
+};
+
+/**
+ * Assign a target to each controlled entity which is not already assigned.
+ * If the current target is no longer eatable or no longer exists, reassign a new one.
+ *
+ * @TODO When assigning to one of my one entities, assign reciprocally
+ */
+var assignTargets = function(myEntities, allEntities) {
+  myEntities.forEach(function(mine) {
+    var predator = isEndangered(mine, allEntities);
+    if(predator) {
+      debug(mine.id, 'is in DANGER because of', predator.id);
+    }
+
+    if(!targets[mine.id]) {
+      assignTarget(mine, allEntities);
+      return;
+    }
+
+    // Even if a target is already assigned, we must check that it exists
+    // and is still eatable
+    target = getEntityById(allEntities, targets[mine.id]);
+    if(!target || !isEatable(mine, target)) {
+      assignTarget(mine, allEntities);
+      return;
+    }
+  });
 };
 
 // Player identifiers range from 0 to 4
@@ -212,8 +253,6 @@ while (true) {
   var myEntities = getMyEntities(entities);
   assignTargets(myEntities, entities);
 
-  // ----- Output
-  debug('There are', entities.length, 'in total (', myEntities.length, 'are mine).');
   myEntities.forEach(function(mine) {
     // One instruction per chip: 2 real numbers (x y) for a propulsion, or 'WAIT' to stay still
     // You can append a message to your line, it will get displayed over the entity
@@ -225,6 +264,8 @@ while (true) {
       var eta = estimateEta(mine, target);
       debug('Moving', mine.id, 'to', target.id, 'will take', eta, 'rounds.');
       var estimatedPosition = estimatePosition(target, Math.min(eta, MAX_PREDICTION_HORIZON));
+
+      // ----- Output
       print(estimatedPosition.x, estimatedPosition.y, target.id);
     }
     else {
