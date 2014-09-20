@@ -169,9 +169,18 @@ var isEndangered = function(myEntity, allEntities, n) {
       return false;
     }
 
-    var position = estimatePosition(e, n);
-    var d = distance(myPosition, position);
-    return d <= 1.02 * ((myEntity.radius / 2) + (e.radius / 2));
+    // TODO: trajectory based detection (continuous movement)
+    var d;
+    var criticalDistance = myEntity.radius + e.radius;
+    for(var i = 1; i <= n; ++i) {
+      d = distance(estimatePosition(myEntity, i), estimatePosition(e, i));
+      // debug(myEntity.id, '--', e.id, ':', d, '(min:', criticalDistance, ')');
+      if(d <= 0.98 * criticalDistance) {
+        return true;
+      }
+    }
+    // This entity is not going to be near in the next n rounds
+    return false;
   });
 
   if(!dangereous || dangereous.length < 1) {
