@@ -10,7 +10,7 @@ var MAX_TARGET_SPEED = 100;
 var MIN_TARGET_RADIUS = 8;
 /** It doesn't make sense to try and predict positions dozens of rounds in advance */
 var MAX_PREDICTION_HORIZON = 24;
-var DEFAULT_PREDICTION_HORIZON = 2;
+var DEFAULT_PREDICTION_HORIZON = 3;
 
 var debug = function() {
   var args = arguments;
@@ -203,7 +203,6 @@ var isEndangered = function(myEntity, allEntities, n) {
  * @return {Object} The best possible position to escape this predator
  */
 var chooseEscapeDestination = function(myEntity, predator, n) {
-  // TODO: take environment into account
   // TODO: take current inertia into account
   // TODO: check that this works for still predators
 
@@ -229,10 +228,17 @@ var chooseEscapeDestination = function(myEntity, predator, n) {
   };
 
   // Go to the perpendicular to that direction
+  // TODO: take environment into account (to choose left / right)
   var normal = {
     x: - toCrash.y,
     y: toCrash.x
   };
+  normal = normalized(normal);
+  // Compensate for current speed
+  var currentDirection = normalized({ x: myEntity.vx, y: myEntity.vy });
+  normal.x += -(currentDirection.x / 2);
+  normal.y += -(currentDirection.y / 2);
+
   debug('Escaping towards', normal.x, normal.y);
 
   return {
