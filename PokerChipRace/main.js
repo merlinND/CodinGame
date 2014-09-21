@@ -5,14 +5,12 @@
  * Tip: merging your chips will give you a sizeable advantage.
  **/
 
-// TODO: fleeing mechanism
-
 var MAX_SPEED = 15;
 var MAX_TARGET_SPEED = 100;
 var MIN_TARGET_RADIUS = 8;
 /** It doesn't make sense to try and predict positions dozens of rounds in advance */
 var MAX_PREDICTION_HORIZON = 24;
-var DEFAULT_PREDICTION_HORIZON = 4;
+var DEFAULT_PREDICTION_HORIZON = 2;
 
 var debug = function() {
   var args = arguments;
@@ -20,11 +18,26 @@ var debug = function() {
   printErr(message, '\n');
 };
 
+var getNorm = function(vector, p1, p2) {
+  if(!p1) p1 = 'x';
+  if(!p2) p2 = 'y';
+  return Math.sqrt(Math.pow(vector[p1], 2) + Math.pow(vector[p2], 2));
+};
 var distance = function(from, to) {
-  return Math.sqrt( Math.pow(from.x - to.x, 2) + Math.pow(from.y - to.y, 2) );
+  return getNorm({
+    x: from.x - to.x,
+    y: from.y - to.y
+  });
 };
 var getSpeed = function(entity) {
-  return Math.sqrt(Math.pow(entity.vx, 2) + Math.pow(entity.vy, 2));
+  return getNorm(entity, 'vx', 'vy');
+};
+var normalized = function(vector) {
+  var norm = getNorm(vector);
+  return {
+    x: vector.x / norm,
+    y: vector.y / norm
+  };
 };
 
 var isMine = function(entity) {
