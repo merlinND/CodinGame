@@ -162,7 +162,7 @@ var estimateEta = function(entity, target, speed) {
  * @param {Object} myEntity
  * @param {Array} allEntities
  * @param {Integer} [n] Number of rounds to predict ahead
- * @return {Integer} The id of an entity endangering this entity, or null if it's safe
+ * @return {Object} id of an entity endangering this entity, or null if it's safe
  */
 var isEndangered = function(myEntity, allEntities, n) {
   if(!n) {
@@ -182,7 +182,7 @@ var isEndangered = function(myEntity, allEntities, n) {
     for(var i = 1; i <= n; ++i) {
       d = distance(estimatePosition(myEntity, i), estimatePosition(e, i));
       // debug(myEntity.id, '--', e.id, ':', d, '(min:', criticalDistance, ')');
-      if(d <= criticalDistance) {
+      if(d <= 0.99 * criticalDistance) {
         return true;
       }
     }
@@ -202,22 +202,37 @@ var isEndangered = function(myEntity, allEntities, n) {
 /**
  * @return {Object} The best possible position to escape this predator
  */
-var chooseEscapeDestination = function(myEntity, predator) {
-  // TODO: escape from point of crash, not predator's displacement
+var chooseEscapeDestination = function(myEntity, predator, n) {
   // TODO: take environment into account
   // TODO: take current inertia into account
   // TODO: check that this works for still predators
-  var normal = {};
-  // Avoid still targets
-  if(getSpeed(predator) > 0.1) {
-    normal.x = - predator.vy;
-    normal.y = predator.vx;
-  }
-  else {
-    normal.x = - myEntity.vx;
-    normal.y = - myEntity.vy;
+
+  if(!n) {
+    n = DEFAULT_PREDICTION_HORIZON;
   }
 
+  // Determine crash position
+  // TODO: refactor to avoid code duplication
+  var position, d, predatorPosition;
+  var criticalDistance = myEntity.radius + predator.radius;
+  for(var i = 1; i <= n; i++) {
+    predatorPosition = estimatePosition(predator, i);
+    d = distance(estimatePosition(myEntity, i), predatorPosition);
+    if(d <= 0.99 * criticalDistance) {
+      position = predatorPosition;
+      break;
+    }
+  }
+  var toCrash = {
+    x: position.x - myEntity.x,
+    y: position.y - myEntity.y
+  };
+
+  // Go to the perpendicular to that direction
+  var normal = {
+    x: - toCrash.y,
+    y: toCrash.x
+  };
   debug('Escaping towards', normal.x, normal.y);
 
   return {
