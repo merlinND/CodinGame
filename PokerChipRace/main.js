@@ -11,6 +11,8 @@ var MIN_TARGET_RADIUS = 8;
 /** It doesn't make sense to try and predict positions dozens of rounds in advance */
 var MAX_PREDICTION_HORIZON = 24;
 var DEFAULT_PREDICTION_HORIZON = 3;
+/** Percentage of the radius that we try to keep free around us (vital space) */
+var DISTANCE_MARGIN = 0.01;
 
 var debug = function() {
   var args = arguments;
@@ -181,8 +183,7 @@ var isEndangered = function(myEntity, allEntities, n) {
     var criticalDistance = myEntity.radius + e.radius;
     for(var i = 1; i <= n; ++i) {
       d = distance(estimatePosition(myEntity, i), estimatePosition(e, i));
-      // debug(myEntity.id, '--', e.id, ':', d, '(min:', criticalDistance, ')');
-      if(d <= 0.99 * criticalDistance) {
+      if(d <= (1 - DISTANCE_MARGIN) * criticalDistance) {
         return true;
       }
     }
@@ -217,7 +218,7 @@ var chooseEscapeDestination = function(myEntity, predator, n) {
   for(var i = 1; i <= n; i++) {
     predatorPosition = estimatePosition(predator, i);
     d = distance(estimatePosition(myEntity, i), predatorPosition);
-    if(d <= 0.99 * criticalDistance) {
+    if(d <= (1 - DISTANCE_MARGIN) * criticalDistance) {
       position = predatorPosition;
       break;
     }
